@@ -12,23 +12,25 @@ def test_score_teams():
         Game("Bar", 1, "Baz", 2),
     ])
 
-    assert teams["Foo"] == 1
-    assert teams["Bar"] == 3
-    assert teams["Baz"] == 4
+    assert teams["Foo"] == Score(1, -1)
+    assert teams["Bar"] == Score(3, 0)
+    assert teams["Baz"] == Score(4, 1)
 
 def test_rank_teams():
     teams = {
-        "D": 40,
-        "A": 40,
-        "B": 10,
-        "C": 15,
+        "D": Score(40, 0),
+        "A": Score(40, 0),
+        "B": Score(10, 0),
+        "C": Score(15, 0),
+        "E": Score(15, 10),
     }
 
     assert rank_teams(teams) == [
-        Ranking(1, "A", 40),
-        Ranking(1, "D", 40),
-        Ranking(3, "C", 15),
-        Ranking(4, "B", 10),
+        Ranking(1, "A", 40, 0),
+        Ranking(1, "D", 40, 0),
+        Ranking(3, "E", 15, 10),
+        Ranking(4, "C", 15, 0),
+        Ranking(5, "B", 10, 0),
     ]
 
 def test_group_by():

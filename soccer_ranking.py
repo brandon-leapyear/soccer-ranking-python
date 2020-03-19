@@ -4,7 +4,8 @@ from typing import Callable, List, Mapping, NamedTuple, TypeVar
 class Ranking(NamedTuple):
     rank: int
     team: str
-    score: int
+    league_score: int
+    goal_diff: int
 
 def get_rankings(lines: List[str]) -> List[Ranking]:
     games = [parse_game(line) for line in lines]
@@ -29,26 +30,44 @@ def parse_game(line: str) -> Game:
         team2_score=int(team2_score),
     )
 
-def score_teams(games: List[Game]) -> Mapping[str, int]:
-    scores = defaultdict(int)
+class Score:
+    def __init__(self, league_score=0, goal_diff=0):
+        self.league_score = league_score
+        self.goal_diff = goal_diff
+
+    def __repr__(self):
+        return "Score(league_score={}, goal_diff={})".format(self.league_score, self.goal_diff)
+
+    def __eq__(self, other):
+        return self.league_score == other.league_score and self.goal_diff == other.goal_diff
+
+def score_teams(games: List[Game]) -> Mapping[str, Score]:
+    scores = defaultdict(Score)
 
     for game in games:
-        if game.team1_score > game.team2_score:
-            scores[game.team1_name] += 3
-            scores[game.team2_name] += 0
-        elif game.team1_score < game.team2_score:
-            scores[game.team1_name] += 0
-            scores[game.team2_name] += 3
+        team1 = scores[game.team1_name]
+        team2 = scores[game.team2_name]
+
+        goal_diff = game.team1_score - game.team2_score
+        team1.goal_diff += goal_diff
+        team2.goal_diff -= goal_diff
+
+        if goal_diff > 0:
+            team1.league_score += 3
+            team2.league_score += 0
+        elif goal_diff < 0:
+            team1.league_score += 0
+            team2.league_score += 3
         else:
-            scores[game.team1_name] += 1
-            scores[game.team2_name] += 1
+            team1.league_score += 1
+            team2.league_score += 1
 
     return scores
 
-def rank_teams(teams: Mapping[str, int]) -> List[Ranking]:
+def rank_teams(teams: Mapping[str, Score]) -> List[Ranking]:
     def get_sort_key(team):
         name, score = team
-        return (-score, name)
+        return (-score.league_score, -score.goal_diff, name)
 
     sorted_teams = sorted(teams.items(), key=get_sort_key)
 
@@ -61,7 +80,7 @@ def rank_teams(teams: Mapping[str, int]) -> List[Ranking]:
 
     for tied_teams in group_by(sorted_teams, key=get_group_key):
         for name, score in tied_teams:
-            result.append(Ranking(rank=i, team=name, score=score))
+            result.append(Ranking(rank=i, team=name, league_score=score.league_score, goal_diff=score.goal_diff))
 
         i += len(tied_teams)
 
